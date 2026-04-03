@@ -539,7 +539,7 @@ async function callAI(userText) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: MODES[state.mode].prompt,
       messages: state.messages
@@ -701,7 +701,7 @@ function practiceMore() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: `You are an English tutor. The user had these corrections in their last session:\n${items}\n\nCreate a short, fun conversation that naturally uses the corrected expressions so the user can practice them. Be encouraging.`,
       messages: [{ role: 'user', content: 'Let\'s practice the corrections from my last session!' }]
