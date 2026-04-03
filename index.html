@@ -275,6 +275,34 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div>
 </div>
 
+<!-- API KEY SCREEN -->
+<div id="apikey" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 28px;">
+    <div style="font-size:36px;margin-bottom:20px;text-align:center;">🔑</div>
+    <div style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:10px;text-align:center;">APIキーを設定</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:28px;text-align:center;">
+      Anthropic APIキーを入力してください。<br>
+      キーはこのデバイスにのみ保存されます。
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">APIキー</div>
+      <input id="apikey-input" type="password" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" spellcheck="false"
+        style="width:100%;background:none;border:none;outline:none;color:var(--text);font-size:15px;font-family:monospace;"
+        onkeydown="if(event.key==='Enter')submitApiKey()" />
+    </div>
+    <div id="apikey-error" style="font-size:13px;color:var(--red);min-height:20px;margin-bottom:16px;text-align:center;"></div>
+    <button onclick="submitApiKey()" class="cta-btn">保存して始める →</button>
+    <div style="margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+        📌 <strong style="color:var(--text);">APIキーの取得方法</strong><br>
+        1. <a href="https://console.anthropic.com" target="_blank" style="color:var(--green);">console.anthropic.com</a> にアクセス<br>
+        2. ログイン → 「API Keys」→「Create Key」<br>
+        3. 表示されたキーをここに貼り付ける
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- INSTALL BANNER -->
 <div id="install-banner">
   <div class="banner-title">📲 ホーム画面に追加</div>
@@ -373,6 +401,7 @@ function saveState() {
 // Init
 loadState();
 renderHome();
+if (!getApiKey()) { setTimeout(() => show('apikey'), 300); }
 
 // PWA install
 window.addEventListener('beforeinstallprompt', e => {
@@ -494,11 +523,21 @@ function removeTyping() {
   if (el) el.remove();
 }
 
+function getApiKey() { return localStorage.getItem('de-apikey') || ''; }
+function saveApiKey(k) { localStorage.setItem('de-apikey', k.trim()); }
+
 async function callAI(userText) {
+  const apiKey = getApiKey();
+  if (!apiKey) { show('apikey'); throw new Error('No API key'); }
   state.messages.push({ role: 'user', content: userText });
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -506,10 +545,28 @@ async function callAI(userText) {
       messages: state.messages
     })
   });
+  if (!resp.ok) {
+    if (resp.status === 401) {
+      document.getElementById('apikey-error').textContent = 'APIキーが無効です。再入力してください。';
+      show('apikey'); throw new Error('Invalid key');
+    }
+    throw new Error('API error ' + resp.status);
+  }
   const data = await resp.json();
   const full = data.content.map(c => c.text || '').join('');
   state.messages.push({ role: 'assistant', content: full });
   return full;
+}
+
+function submitApiKey() {
+  const val = document.getElementById('apikey-input').value.trim();
+  if (!val.startsWith('sk-')) {
+    document.getElementById('apikey-error').textContent = 'APIキーは sk- から始まります';
+    return;
+  }
+  saveApiKey(val);
+  document.getElementById('apikey-error').textContent = '';
+  goHome();
 }
 
 async function startConversation() {
