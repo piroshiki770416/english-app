@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily English">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Daily English</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1c1c1c;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0ede8;
+  --text2: rgba(240,237,232,0.55);
+  --text3: rgba(240,237,232,0.3);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.12);
+  --green-border: rgba(74,222,128,0.25);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251,191,36,0.1);
+  --red-dim: rgba(248,113,113,0.1);
+  --red: #f87171;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+#app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+/* ─── SCREENS ─── */
+.screen { display: none; flex-direction: column; height: 100%; overflow: hidden; animation: fadeIn 0.25s ease; }
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── HOME SCREEN ─── */
+#home { background: var(--bg); }
+.home-scroll { flex: 1; overflow-y: auto; padding: 0 20px 24px; -webkit-overflow-scrolling: touch; }
+.home-scroll::-webkit-scrollbar { display: none; }
+
+.top-bar { display: flex; justify-content: space-between; align-items: flex-start; padding: 56px 20px 0; margin-bottom: 28px; }
+.app-wordmark { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; }
+.streak-pill { display: flex; align-items: center; gap: 6px; background: var(--green-dim); border: 1px solid var(--green-border); border-radius: 20px; padding: 6px 12px; }
+.streak-pill span { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--green); }
+
+.hero { margin-bottom: 28px; }
+.hero-greeting { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.hero-title { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1.15; color: var(--text); }
+.hero-title em { font-style: normal; color: var(--green); }
+
+.week-strip { display: flex; gap: 6px; margin-bottom: 28px; }
+.week-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.week-day-label { font-size: 10px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+.week-dot { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.week-dot.done { background: var(--green); border-color: var(--green); }
+.week-dot.today { border-color: var(--green); color: var(--green); }
+.week-dot.done::after { content: '✓'; color: #0a0a0a; font-weight: 700; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px; }
+.stat-n { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+.stat-l { font-size: 11px; color: var(--text2); }
+
+.section-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+
+.mode-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.mode-item { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.mode-item:active { background: var(--surface2); }
+.mode-item.selected { border-color: var(--green-border); background: var(--green-dim); }
+.mode-emoji { width: 40px; height: 40px; background: var(--surface2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.mode-item.selected .mode-emoji { background: rgba(74,222,128,0.15); }
+.mode-info { flex: 1; min-width: 0; }
+.mode-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.mode-sub { font-size: 12px; color: var(--text2); }
+.mode-check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border2); flex-shrink: 0; transition: all 0.15s; }
+.mode-item.selected .mode-check { background: var(--green); border-color: var(--green); display: flex; align-items: center; justify-content: center; }
+.mode-item.selected .mode-check::after { content: '✓'; font-size: 11px; color: #0a0a0a; font-weight: 700; }
+
+.cta-btn { width: 100%; background: var(--green); color: #0a0a0a; border: none; border-radius: var(--radius); padding: 17px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: 0.03em; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+.cta-btn:active { opacity: 0.85; transform: scale(0.985); }
+
+.sub-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; margin-bottom: 32px; }
+.sub-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.sub-btn:active { background: var(--surface2); }
+
+/* ─── CHAT SCREEN ─── */
+#chat { background: var(--bg); }
+.chat-nav { display: flex; align-items: center; justify-content: space-between; padding: 52px 20px 12px; flex-shrink: 0; }
+.nav-back { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--text2); }
+.nav-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+.end-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 7px 14px; font-size: 12px; color: var(--text2); cursor: pointer; font-weight: 500; }
+.end-btn:active { background: var(--surface2); }
+
+.messages { flex: 1; overflow-y: auto; padding: 8px 16px 12px; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 10px; }
+.messages::-webkit-scrollbar { display: none; }
+
+.msg { display: flex; flex-direction: column; }
+.msg.ai { align-items: flex-start; }
+.msg.user { align-items: flex-end; }
+.bubble { max-width: 80%; padding: 12px 15px; font-size: 15px; line-height: 1.55; }
+.msg.ai .bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 18px 18px 18px 4px; color: var(--text); }
+.msg.user .bubble { background: var(--green); border-radius: 18px 18px 4px 18px; color: #0a0a0a; font-weight: 500; }
+.msg.correction .bubble { background: var(--amber-dim); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; color: var(--text); font-size: 13px; }
+.correction-tag { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: var(--amber); text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
+
+.typing-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 18px 18px 18px 4px; padding: 14px 18px; display: flex; gap: 5px; align-items: center; align-self: flex-start; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: pulse 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100%{opacity:0.3;transform:scale(0.85)} 40%{opacity:1;transform:scale(1)} }
+
+.input-bar { padding: 10px 16px calc(10px + var(--safe-bottom)); background: var(--bg); border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+.input-wrap { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 22px; padding: 10px 16px; display: flex; align-items: center; }
+.input-wrap textarea { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.4; resize: none; max-height: 100px; min-height: 24px; overflow-y: auto; }
+.input-wrap textarea::placeholder { color: var(--text3); }
+.send-btn { width: 44px; height: 44px; background: var(--green); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s, transform 0.1s; }
+.send-btn:active { opacity: 0.85; transform: scale(0.93); }
+.send-btn svg { width: 18px; height: 18px; fill: #0a0a0a; }
+
+/* ─── REVIEW SCREEN ─── */
+#review { background: var(--bg); }
+.review-scroll { flex: 1; overflow-y: auto; padding: 0 20px 24px; -webkit-overflow-scrolling: touch; }
+.review-scroll::-webkit-scrollbar { display: none; }
+.review-header { padding: 52px 20px 20px; flex-shrink: 0; }
+.review-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.review-sub { font-size: 13px; color: var(--text2); }
+
+.review-empty { text-align: center; padding: 48px 24px; color: var(--text3); font-size: 14px; line-height: 1.6; }
+.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+.rc-type { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+.rc-type.error { color: var(--red); }
+.rc-type.better { color: var(--green); }
+.rc-text { font-size: 14px; color: var(--text); line-height: 1.55; }
+.rc-time { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+.practice-btn { width: 100%; background: var(--surface); border: 1px solid var(--green-border); border-radius: var(--radius); padding: 15px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--green); cursor: pointer; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.practice-btn:active { background: var(--green-dim); }
+
+/* ─── INSTALL BANNER ─── */
+#install-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border2); padding: 16px 20px calc(16px + var(--safe-bottom)); display: none; z-index: 100; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+#install-banner.show { display: block; }
+.banner-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.banner-sub { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+.banner-btns { display: flex; gap: 10px; }
+.banner-install { flex: 1; background: var(--green); color: #0a0a0a; border: none; border-radius: var(--radius-sm); padding: 12px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+.banner-dismiss { background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--text2); cursor: pointer; }
+
+/* iOS install hint */
+.ios-hint { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 14px 16px; margin: 0 20px; font-size: 13px; color: var(--text2); line-height: 1.6; display: none; position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 0; right: 0; z-index: 100; }
+.ios-hint.show { display: block; }
+.ios-hint strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="top-bar">
+    <div class="app-wordmark">Daily English</div>
+    <div class="streak-pill">
+      <span id="streak-emoji">🔥</span>
+      <span id="streak-num">0</span>
+      <span style="font-size:11px;color:var(--text2);margin-left:2px;">day streak</span>
+    </div>
+  </div>
+  <div class="home-scroll">
+    <div class="hero">
+      <div class="hero-greeting" id="greeting">Good morning</div>
+      <div class="hero-title">今日も<br><em>English</em><br>話そう</div>
+    </div>
+
+    <div class="week-strip" id="week-strip"></div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-n" id="s-sessions">0</div>
+        <div class="stat-l">sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-n" id="s-corrections">0</div>
+        <div class="stat-l">corrections</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-n" id="s-level">A2</div>
+        <div class="stat-l">level</div>
+      </div>
+    </div>
+
+    <div class="section-title">モードを選ぶ</div>
+    <div class="mode-list" id="mode-list">
+      <div class="mode-item selected" data-mode="daily" onclick="selectMode(this)">
+        <div class="mode-emoji">☕</div>
+        <div class="mode-info">
+          <div class="mode-name">Daily Chat</div>
+          <div class="mode-sub">日常のフリートーク</div>
+        </div>
+        <div class="mode-check"></div>
+      </div>
+      <div class="mode-item" data-mode="business" onclick="selectMode(this)">
+        <div class="mode-emoji">💼</div>
+        <div class="mode-info">
+          <div class="mode-name">Business</div>
+          <div class="mode-sub">会議・交渉・プレゼン</div>
+        </div>
+        <div class="mode-check"></div>
+      </div>
+      <div class="mode-item" data-mode="travel" onclick="selectMode(this)">
+        <div class="mode-emoji">✈️</div>
+        <div class="mode-info">
+          <div class="mode-name">Travel</div>
+          <div class="mode-sub">空港・ホテル・観光</div>
+        </div>
+        <div class="mode-check"></div>
+      </div>
+      <div class="mode-item" data-mode="situation" onclick="selectMode(this)">
+        <div class="mode-emoji">🎯</div>
+        <div class="mode-info">
+          <div class="mode-name">Situation</div>
+          <div class="mode-sub">面接・交渉・社交</div>
+        </div>
+        <div class="mode-check"></div>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToChat()">レッスンを始める →</button>
+    <div class="sub-btns">
+      <button class="sub-btn" onclick="goToReview()">📋 復習リスト</button>
+      <button class="sub-btn" onclick="showInstallPrompt()">📲 アプリ追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat" class="screen">
+  <div class="chat-nav">
+    <div class="nav-back" onclick="goHome()">←</div>
+    <div class="nav-title" id="chat-label">Daily Chat</div>
+    <div class="end-btn" onclick="endSession()">終了 →</div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="input-bar">
+    <div class="input-wrap">
+      <textarea id="user-input" placeholder="Type in English..." rows="1"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"></textarea>
+    </div>
+    <button class="send-btn" onclick="sendMsg()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- REVIEW -->
+<div id="review" class="screen">
+  <div class="review-header">
+    <button style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;gap:4px;" onclick="goHome()">← ホームへ</button>
+    <div class="review-title">復習リスト</div>
+    <div class="review-sub" id="review-sub">今日の会話から</div>
+  </div>
+  <div class="review-scroll">
+    <div id="review-list"></div>
+    <button class="practice-btn" onclick="practiceMore()">✦ さらに練習する</button>
+    <div style="height:24px;"></div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="banner-title">📲 ホーム画面に追加</div>
+  <div class="banner-sub">アプリとして毎日使えるようになります</div>
+  <div class="banner-btns">
+    <button class="banner-install" id="install-btn" onclick="installApp()">インストール</button>
+    <button class="banner-dismiss" onclick="hideBanner()">あとで</button>
+  </div>
+</div>
+
+<div class="ios-hint" id="ios-hint">
+  <strong>ホーム画面に追加する方法：</strong><br>
+  Safari下部の共有ボタン（□↑）をタップ →「ホーム画面に追加」を選択
+  <div style="margin-top:10px;text-align:right;">
+    <button onclick="document.getElementById('ios-hint').classList.remove('show')" style="background:none;border:none;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;">閉じる</button>
+  </div>
+</div>
+
+<script>
+const MODES = {
+  daily: {
+    label: 'Daily Chat',
+    prompt: `You are Alex, a friendly and encouraging English conversation partner for a Japanese adult learner.
+Start with a warm, natural topic (weekend plans, favorite food, travel, movies, etc).
+Keep your replies short: 2-3 sentences max.
+After the user responds, ALWAYS do exactly this format:
+1. Continue the conversation naturally.
+2. If there's a grammar/vocabulary mistake, add on a new line: [CORRECTION] Brief explanation + corrected version
+3. If no mistake, occasionally add: [TIP] A useful expression or phrase related to what they said
+Be warm, patient, encouraging. Never overwhelm with multiple corrections.`
+  },
+  business: {
+    label: 'Business',
+    prompt: `You are a business English coach for a Japanese professional.
+Start a realistic business scenario: a meeting opening, email review, presentation feedback, or negotiation.
+Keep replies brief: 2-3 sentences.
+After the user responds, use this format:
+1. Continue the scenario naturally.
+2. [CORRECTION] if there's a grammar/vocabulary issue, with a professional alternative
+3. [TIP] occasionally suggest more natural business phrasing
+Focus on professional tone, formal expressions, email etiquette, and presentation language.`
+  },
+  travel: {
+    label: 'Travel',
+    prompt: `You are a travel English tutor helping a Japanese traveler.
+Start a travel scenario: checking in at a hotel, ordering at a restaurant, asking for directions, or at an airport.
+Keep replies brief: 2-3 sentences.
+After user responds:
+1. Continue the roleplay naturally.
+2. [CORRECTION] if needed, with the natural traveler's expression
+3. [TIP] occasionally add useful travel phrases
+Make it practical and confidence-building.`
+  },
+  situation: {
+    label: 'Situation',
+    prompt: `You are an English roleplay partner for situational practice.
+Start one of: a job interview, a casual party introduction, a customer complaint call, or a doctor's visit.
+Keep replies brief: 2-3 sentences.
+After user responds:
+1. Continue the roleplay.
+2. [CORRECTION] with natural native-speaker version if needed
+3. [TIP] for particularly useful situational phrases
+Help build real-world confidence.`
+  }
+};
+
+let state = {
+  mode: 'daily',
+  messages: [],
+  corrections: [],
+  sessions: 0,
+  totalCorrections: 0,
+  streak: 0,
+  lastSessionDate: null,
+  weekDone: [],
+  level: 'A2'
+};
+
+let deferredPrompt = null;
+let isLoading = false;
+
+// Load state
+function loadState() {
+  try {
+    const saved = localStorage.getItem('daily-english-state');
+    if (saved) Object.assign(state, JSON.parse(saved));
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('daily-english-state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+// Init
+loadState();
+renderHome();
+
+// PWA install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => document.getElementById('install-banner').classList.add('show'), 3000);
+});
+
+function showInstallPrompt() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone;
+  if (isStandalone) { alert('すでにホーム画面に追加済みです！'); return; }
+  if (isIOS) {
+    document.getElementById('ios-hint').classList.add('show');
+  } else if (deferredPrompt) {
+    installApp();
+  } else {
+    document.getElementById('install-banner').classList.add('show');
+  }
+}
+
+async function installApp() {
+  hideBanner();
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  }
+}
+
+function hideBanner() {
+  document.getElementById('install-banner').classList.remove('show');
+}
+
+function renderHome() {
+  // Greeting
+  const h = new Date().getHours();
+  const greetings = { morning: 'Good morning ☀️', afternoon: 'Good afternoon 🌤', evening: 'Good evening 🌙' };
+  const g = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+  document.getElementById('greeting').textContent = greetings[g];
+
+  // Stats
+  document.getElementById('streak-num').textContent = state.streak;
+  document.getElementById('s-sessions').textContent = state.sessions;
+  document.getElementById('s-corrections').textContent = state.totalCorrections;
+  document.getElementById('s-level').textContent = state.level;
+
+  // Week strip
+  const days = ['M','T','W','T','F','S','S'];
+  const today = new Date().getDay();
+  const strip = document.getElementById('week-strip');
+  strip.innerHTML = days.map((d, i) => {
+    const idx = (i + 1) % 7;
+    const done = state.weekDone && state.weekDone.includes(idx);
+    const isToday = idx === today;
+    return `<div class="week-day">
+      <div class="week-dot ${done ? 'done' : ''} ${!done && isToday ? 'today' : ''}">${!done ? '' : ''}</div>
+      <div class="week-day-label">${d}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectMode(el) {
+  document.querySelectorAll('.mode-item').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+  state.mode = el.dataset.mode;
+}
+
+function goHome() {
+  show('home');
+  renderHome();
+}
+
+function goToChat() {
+  state.messages = [];
+  state.corrections = [];
+  document.getElementById('chat-label').textContent = MODES[state.mode].label;
+  document.getElementById('messages').innerHTML = '';
+  show('chat');
+  startConversation();
+}
+
+function goToReview() {
+  show('review');
+  renderReview();
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function addMsg(text, type) {
+  const area = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + type;
+
+  if (type === 'correction') {
+    wrap.innerHTML = `<div class="correction-tag">✏️ Correction</div><div class="bubble">${text}</div>`;
+  } else {
+    wrap.innerHTML = `<div class="bubble">${text}</div>`;
+  }
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showTyping() {
+  const area = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.id = 'typing';
+  el.className = 'typing-bubble';
+  el.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  area.appendChild(el);
+  area.scrollTop = area.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+async function callAI(userText) {
+  state.messages.push({ role: 'user', content: userText });
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: MODES[state.mode].prompt,
+      messages: state.messages
+    })
+  });
+  const data = await resp.json();
+  const full = data.content.map(c => c.text || '').join('');
+  state.messages.push({ role: 'assistant', content: full });
+  return full;
+}
+
+async function startConversation() {
+  isLoading = true;
+  showTyping();
+  try {
+    const reply = await callAI('Please start the conversation!');
+    removeTyping();
+    processBotReply(reply);
+  } catch(e) {
+    removeTyping();
+    addMsg('Connection error. Please check your network.', 'ai');
+  }
+  isLoading = false;
+}
+
+function processBotReply(text) {
+  // Split on [CORRECTION] or [TIP]
+  const corrMatch = text.match(/\[CORRECTION\]([\s\S]*?)(?=\[TIP\]|$)/i);
+  const tipMatch = text.match(/\[TIP\]([\s\S]*?)$/i);
+  let main = text
+    .replace(/\[CORRECTION\][\s\S]*$/i, '')
+    .replace(/\[TIP\][\s\S]*$/i, '')
+    .trim();
+
+  if (main) addMsg(main, 'ai');
+
+  if (corrMatch) {
+    const ct = corrMatch[1].trim();
+    addMsg(ct, 'correction');
+    state.corrections.push({ text: ct, type: 'error', time: timeStr() });
+    state.totalCorrections++;
+  }
+  if (tipMatch) {
+    const tt = tipMatch[1].trim();
+    addMsg('💡 ' + tt, 'correction');
+    state.corrections.push({ text: tt, type: 'better', time: timeStr() });
+  }
+}
+
+function timeStr() {
+  return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function sendMsg() {
+  if (isLoading) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  addMsg(text, 'user');
+  isLoading = true;
+  showTyping();
+  try {
+    const reply = await callAI(text);
+    removeTyping();
+    processBotReply(reply);
+  } catch(e) {
+    removeTyping();
+    addMsg('Sorry, something went wrong. Please try again.', 'ai');
+  }
+  isLoading = false;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function endSession() {
+  state.sessions++;
+  // Update streak
+  const today = new Date().toDateString();
+  if (state.lastSessionDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    state.streak = state.lastSessionDate === yesterday ? state.streak + 1 : 1;
+    state.lastSessionDate = today;
+    const dayIdx = new Date().getDay();
+    if (!state.weekDone) state.weekDone = [];
+    if (!state.weekDone.includes(dayIdx)) state.weekDone.push(dayIdx);
+    // Reset week on Monday
+  }
+  // Update level
+  if (state.sessions >= 30) state.level = 'B2';
+  else if (state.sessions >= 20) state.level = 'B1';
+  else if (state.sessions >= 10) state.level = 'A2+';
+  saveState();
+  goToReview();
+}
+
+function renderReview() {
+  const list = document.getElementById('review-list');
+  document.getElementById('review-sub').textContent =
+    state.corrections.length ? `今日の会話 · ${state.corrections.length}件` : '今日の会話から';
+  if (!state.corrections.length) {
+    list.innerHTML = '<div class="review-empty">まだ記録がありません。<br>会話を始めてみましょう！</div>';
+    return;
+  }
+  list.innerHTML = state.corrections.map(c => `
+    <div class="review-card">
+      <div class="rc-type ${c.type}">${c.type === 'error' ? '✕ 修正' : '✦ より良い表現'}</div>
+      <div class="rc-text">${c.text}</div>
+      <div class="rc-time">${c.time}</div>
+    </div>
+  `).join('');
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+function practiceMore() {
+  if (!state.corrections.length) { goToChat(); return; }
+  const items = state.corrections.map(c => `• ${c.text}`).join('\n');
+  state.messages = [];
+  state.corrections = [];
+  document.getElementById('chat-label').textContent = '復習練習';
+  document.getElementById('messages').innerHTML = '';
+  show('chat');
+  isLoading = true;
+  showTyping();
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `You are an English tutor. The user had these corrections in their last session:\n${items}\n\nCreate a short, fun conversation that naturally uses the corrected expressions so the user can practice them. Be encouraging.`,
+      messages: [{ role: 'user', content: 'Let\'s practice the corrections from my last session!' }]
+    })
+  }).then(r => r.json()).then(data => {
+    removeTyping();
+    const text = data.content.map(c => c.text || '').join('');
+    state.messages.push({ role: 'assistant', content: text });
+    processBotReply(text);
+    isLoading = false;
+  }).catch(() => {
+    removeTyping();
+    addMsg('Sorry, something went wrong.', 'ai');
+    isLoading = false;
+  });
+}
+</script>
+</body>
+</html>
