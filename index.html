@@ -530,19 +530,19 @@ async function callAI(userText) {
   const apiKey = getApiKey();
   if (!apiKey) { show('apikey'); throw new Error('No API key'); }
   state.messages.push({ role: 'user', content: userText });
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': 'Bearer ' + apiKey
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
-      system: MODES[state.mode].prompt,
-      messages: state.messages
+  model: 'llama-3.3-70b-versatile',
+  max_tokens: 1024,
+  messages: [
+    { role: 'system', content: MODES[state.mode].prompt },
+    ...state.messages.map(m => ({ role: m.role, content: m.content }))
+  ]
+})
     })
   });
   if (!resp.ok) {
